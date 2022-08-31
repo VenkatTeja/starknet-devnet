@@ -11,6 +11,7 @@ from starkware.starknet.core.os.contract_address.contract_address import (
 )
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.python.utils import to_bytes
+from starkware.starknet.testing.starknet import Starknet
 
 from starknet_devnet.util import Uint256
 
@@ -61,13 +62,12 @@ class Account:
             "address": hex(self.address),
         }
 
-    # TODO this does low level deployment (basically copied from cairo-lang code before 0.10.0)
-    # it should be investigated how it's done now
     async def deploy(self) -> StarknetContract:
         """Deploy this account."""
-        starknet = self.starknet_wrapper.starknet
+        starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = Account.get_contract_class()
         # TODO how fast is this? did it use to be faster with a more low level approach?
+        await starknet.state.state.set_contract_class(Account.HASH_BYTES, contract_class)
         await starknet.state.state.deploy_contract(self.address, Account.HASH_BYTES)
         # TODO is this assertion done in deploy_contract?
         # assert not account_state.initialized

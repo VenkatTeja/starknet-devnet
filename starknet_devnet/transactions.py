@@ -2,7 +2,7 @@
 Classes for storing and handling transactions.
 """
 
-from typing import Dict, List, Union
+from typing import Dict, List
 
 from web3 import Web3
 
@@ -18,7 +18,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     L2ToL1Message,
 )
 from starkware.starknet.business_logic.transaction.objects import InternalTransaction
-from starkware.starknet.business_logic.execution.objects import TransactionExecutionInfo
+from starkware.starknet.testing.starknet import StarknetCallInfo
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from services.everest.business_logic.transaction_execution_objects import (
     TransactionFailureReason,
@@ -34,9 +34,7 @@ class DevnetTransaction:
         self,
         internal_tx: InternalTransaction,
         status: TransactionStatus,
-        execution_info: Union[
-            TransactionExecutionInfo, # TODO StarknetTransactionExecutionInfo
-        ],
+        execution_info: StarknetCallInfo,
         transaction_hash: int = None,
     ):
         self.block = None
@@ -64,7 +62,7 @@ class DevnetTransaction:
         # if isinstance(self.execution_info, StarknetTransactionExecutionInfo):
         #     return self.execution_info.raw_events
 
-        return self.execution_info.get_sorted_events()
+        return self.execution_info.raw_events
 
     def __get_l2_to_l1_messages(self) -> List[L2ToL1Message]:
         """Returns the l2 to l1 messages"""

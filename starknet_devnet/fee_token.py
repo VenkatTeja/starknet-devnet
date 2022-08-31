@@ -51,10 +51,11 @@ class FeeToken:
         starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = FeeToken.get_contract_class()
 
-        # TODO done with deploy_contract?
+        # TODO is this assertion done in deploy_contract?
         # assert not fee_token_state.initialized
 
-        # set class beforehand?
+        # TODO check if already set
+        await starknet.state.state.set_contract_class(FeeToken.HASH_BYTES, contract_class)
         await starknet.state.state.deploy_contract(FeeToken.ADDRESS, FeeToken.HASH_BYTES)
 
         await starknet.state.state.set_storage_at(FeeToken.ADDRESS, get_selector_from_name("ERC20_name"), str_to_felt(FeeToken.NAME))
