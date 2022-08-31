@@ -5,15 +5,12 @@ Fee token and its predefined constants.
 from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import InvokeFunction
-from starkware.starknet.storage.starknet_storage import StorageLeaf
-from starkware.starknet.business_logic.state.objects import (
-    ContractState,
-    ContractCarriedState,
-)
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.python.utils import to_bytes
 from starkware.starknet.compiler.compile import get_selector_from_name
-from starknet_devnet.util import Uint256
+from starkware.starknet.testing.starknet import Starknet
+
+from starknet_devnet.util import Uint256, str_to_felt
 
 
 class FeeToken:
@@ -51,41 +48,27 @@ class FeeToken:
 
     async def deploy(self):
         """Deploy token contract for charging fees."""
-        starknet = self.starknet_wrapper.starknet
+        starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = FeeToken.get_contract_class()
 
-        fee_token_carried_state = starknet.state.state.contract_states[FeeToken.ADDRESS]
-        fee_token_state = fee_token_carried_state.state
-        assert not fee_token_state.initialized
+        # TODO done with deploy_contract?
+        # assert not fee_token_state.initialized
 
-        starknet.state.state.contract_definitions[FeeToken.HASH_BYTES] = contract_class
-        newly_deployed_fee_token_state = await ContractState.create(
-            contract_hash=FeeToken.HASH_BYTES,
-            storage_commitment_tree=fee_token_state.storage_commitment_tree,
-        )
+        # set class beforehand?
+        await starknet.state.state.deploy_contract(FeeToken.ADDRESS, FeeToken.HASH_BYTES)
 
-        starknet.state.state.contract_states[FeeToken.ADDRESS] = ContractCarriedState(
-            state=newly_deployed_fee_token_state,
-            storage_updates={
-                # Running the constructor doesn't need to be simulated
-                get_selector_from_name("ERC20_name"): StorageLeaf(
-                    int.from_bytes(bytes(FeeToken.NAME, "ascii"), "big")
-                ),
-                get_selector_from_name("ERC20_symbol"): StorageLeaf(
-                    int.from_bytes(bytes(FeeToken.SYMBOL, "ascii"), "big")
-                ),
-                get_selector_from_name("ERC20_decimals"): StorageLeaf(18),
-            },
-        )
+        await starknet.state.state.set_storage_at(FeeToken.ADDRESS, get_selector_from_name("ERC20_name"), str_to_felt(FeeToken.NAME))
+        await starknet.state.state.set_storage_at(FeeToken.ADDRESS, get_selector_from_name("ERC20_symbol"), str_to_felt(FeeToken.SYMBOL))
+        await starknet.state.state.set_storage_at(FeeToken.ADDRESS, get_selector_from_name("ERC20_decimals"), 18)
 
         self.contract = StarknetContract(
             state=starknet.state,
-            abi=FeeToken.get_contract_class().abi,
+            abi=contract_class.abi,
             contract_address=FeeToken.ADDRESS,
-            deploy_execution_info=None,
+            deploy_call_info=None
         )
 
-        self.starknet_wrapper.store_contract(
+        await self.starknet_wrapper.store_contract(
             FeeToken.ADDRESS, self.contract, contract_class
         )
 

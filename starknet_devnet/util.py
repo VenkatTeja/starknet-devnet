@@ -9,7 +9,7 @@ from typing import List, Dict, Union
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.business_logic.execution.objects import CallInfo
-from starkware.starknet.business_logic.state.state import CarriedState
+from starkware.starknet.business_logic.state.state import CachedSyncState
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate,
     StateDiff,
@@ -120,11 +120,12 @@ def generate_storage_diff(
 
 
 def generate_state_update(
-    previous_state: CarriedState, current_state: CarriedState
+    previous_state: CachedSyncState, current_state: CachedSyncState
 ) -> BlockStateUpdate:
     """
     Returns roots, deployed contracts and storage diffs between 2 states
     """
+
     deployed_contracts: List[DeployedContract] = []
     declared_contracts: List[int] = []
     storage_diffs: Dict[int, List[StorageEntry]] = {}
@@ -188,3 +189,8 @@ def check_valid_dump_path(dump_path: str):
 
     if not os.path.isdir(dump_path_dir):
         raise ValueError(f"Invalid dump path: directory '{dump_path_dir}' not found.")
+
+
+def str_to_felt(text: str) -> int:
+    """Converts string to felt."""
+    return int.from_bytes(bytes(text, "ascii"), "big")

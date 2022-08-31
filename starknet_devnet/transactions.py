@@ -17,11 +17,8 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     Event,
     L2ToL1Message,
 )
-from starkware.starknet.business_logic.internal_transaction import InternalTransaction
-from starkware.starknet.testing.objects import (
-    TransactionExecutionInfo,
-    StarknetTransactionExecutionInfo,
-)
+from starkware.starknet.business_logic.transaction.objects import InternalTransaction
+from starkware.starknet.business_logic.execution.objects import TransactionExecutionInfo
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from services.everest.business_logic.transaction_execution_objects import (
     TransactionFailureReason,
@@ -38,7 +35,7 @@ class DevnetTransaction:
         internal_tx: InternalTransaction,
         status: TransactionStatus,
         execution_info: Union[
-            TransactionExecutionInfo, StarknetTransactionExecutionInfo
+            TransactionExecutionInfo, # TODO StarknetTransactionExecutionInfo
         ],
         transaction_hash: int = None,
     ):
@@ -63,8 +60,9 @@ class DevnetTransaction:
 
     def __get_events(self) -> List[Event]:
         """Returns the events"""
-        if isinstance(self.execution_info, StarknetTransactionExecutionInfo):
-            return self.execution_info.raw_events
+        # TODO
+        # if isinstance(self.execution_info, StarknetTransactionExecutionInfo):
+        #     return self.execution_info.raw_events
 
         return self.execution_info.get_sorted_events()
 
@@ -147,13 +145,15 @@ class DevnetTransaction:
         call_info = self.execution_info.call_info
 
         return TransactionTrace(
+            validate_invocation=self.execution_info.validate_info,
             function_invocation=(
                 call_info
                 if isinstance(call_info, FunctionInvocation)
-                else FunctionInvocation.from_internal_version(
+                else FunctionInvocation.from_internal(
                     self.execution_info.call_info
                 )
             ),
+            fee_transfer_invocation=self.execution_info.fee_transfer_info,
             signature=self.get_signature(),
         )
 

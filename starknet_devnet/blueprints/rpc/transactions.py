@@ -14,7 +14,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Declare,
-    DECLARE_SENDER_ADDRESS,
+    DEFAULT_DECLARE_SENDER_ADDRESS,
     Deploy,
 )
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
@@ -108,6 +108,7 @@ async def add_invoke_transaction(
     function_invocation: FunctionCall,
     max_fee: NumAsHex,
     version: NumAsHex,
+    nonce: NumAsHex,
     signature: Optional[List[Felt]] = None,
 ) -> dict:
     """
@@ -122,6 +123,7 @@ async def add_invoke_transaction(
         signature=[int(data, 16) for data in signature]
         if signature is not None
         else [],
+        nonce=nonce
     )
 
     _, transaction_hash, _ = await state.starknet_wrapper.invoke(
@@ -153,7 +155,7 @@ async def add_declare_transaction(
     declare_transaction = Declare(
         contract_class=contract_definition,
         version=int(version, 16),
-        sender_address=DECLARE_SENDER_ADDRESS,
+        sender_address=DEFAULT_DECLARE_SENDER_ADDRESS,
         max_fee=0,
         signature=[],
         nonce=0,

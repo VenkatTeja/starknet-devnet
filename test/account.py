@@ -47,11 +47,6 @@ def get_execute_calldata(call_array, calldata, nonce):
     ]
 
 
-def str_to_felt(text: str) -> int:
-    """Converts string to felt."""
-    return int.from_bytes(bytes(text, "ascii"), "big")
-
-
 def get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
     """Get signature from message hash and private key."""
     sig_r, sig_s = sign(message_hash, private_key)

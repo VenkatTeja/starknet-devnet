@@ -3,7 +3,7 @@
 from typing import List
 import pytest
 
-from starkware.starknet.business_logic.internal_transaction import InternalDeploy
+from starkware.starknet.business_logic.transaction.objects import InternalDeploy
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address,
 )
