@@ -34,9 +34,7 @@ class ContractWrapper:
         self,
         entry_point_selector: int,
         calldata: List[int],
-        signature: List[int],
         caller_address: int,
-        max_fee: int,
     ):
         """
         Calls the function identified with `entry_point_selector`, potentially passing in `calldata` and `signature`.

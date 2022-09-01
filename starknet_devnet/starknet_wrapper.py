@@ -21,6 +21,7 @@ from starkware.starknet.services.api.gateway.transaction import (
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
+from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
@@ -40,6 +41,7 @@ from .contracts import DevnetContracts
 from .blocks import DevnetBlocks
 from .block_info_generator import BlockInfoGenerator
 from .devnet_config import DevnetConfig
+from .sequencer_api_utils import InternalInvokeFunctionForSimulate
 
 enable_pickling()
 
@@ -113,7 +115,7 @@ class StarknetWrapper:
 
     def get_state(self):
         """
-        Returns the StarknetState of the underlyling Starknet instance.
+        Returns the StarknetState of the underlying Starknet instance.
         """
         return self.starknet.state
 
@@ -324,11 +326,14 @@ class StarknetWrapper:
             contract_wrapper = self.contracts.get_by_address(
                 invoke_transaction.contract_address
             )
+
+            execution_info = await state.execute_tx(invoke_transaction)
+            execution_info.call_info.
             adapted_result, execution_info = await contract_wrapper.invoke(
                 entry_point_selector=invoke_transaction.entry_point_selector,
                 calldata=invoke_transaction.calldata,
                 signature=invoke_transaction.signature,
-                caller_address=invoke_transaction.caller_address,
+                caller_address=invoke_transaction.account_contract_address,
                 max_fee=invoke_transaction.max_fee,
             )
             status = TransactionStatus.ACCEPTED_ON_L2
@@ -360,16 +365,14 @@ class StarknetWrapper:
 
         return invoke_function.contract_address, tx_hash, {"result": adapted_result}
 
-    async def call(self, transaction: InvokeFunction):
+    async def call(self, transaction: CallFunction):
         """Perform call according to specifications in `transaction`."""
         contract_wrapper = self.contracts.get_by_address(transaction.contract_address)
 
         adapted_result = await contract_wrapper.call(
             entry_point_selector=transaction.entry_point_selector,
             calldata=transaction.calldata,
-            signature=transaction.signature,
             caller_address=0,
-            max_fee=transaction.max_fee,
         )
 
         return {"result": adapted_result}
@@ -421,19 +424,35 @@ class StarknetWrapper:
     async def calculate_actual_fee(self, external_tx: InvokeFunction):
         """Calculates actual fee"""
         state = self.get_state()
-        internal_tx = InternalInvokeFunction.from_external(
+        print("DEBUG estimating fee, version =", external_tx.version)
+
+        # modify version
+        # external_tx_dumped = external_tx.dump()
+        # from starkware.starknet.definitions.constants import QUERY_VERSION_BASE
+        # print("DEBUG subtraction operands", external_tx_dumped["version"], QUERY_VERSION_BASE)
+        # external_tx_dumped["version"] = hex(int(external_tx_dumped["version"], 16) - QUERY_VERSION_BASE)
+        # external_tx = InvokeFunction.load(external_tx_dumped)
+
+        internal_tx = InternalInvokeFunctionForSimulate.from_external(
             external_tx, state.general_config
         )
+        print("DEBUG created from external")
 
         execution_info = await internal_tx.apply_state_updates(
             state.state._copy(), state.general_config
         )
+        print("DEBUG applied state updates on copy")
+        devnet_tx = DevnetTransaction(internal_tx, TransactionStatus.ACCEPTED_ON_L2, execution_info)
+        print("DEBUG generated DevnetTransaction")
+
         tx_fee = execution_info.actual_fee
 
         gas_price = state.state.block_info.gas_price
         gas_usage = tx_fee // gas_price if gas_price else 0
 
-        return {
+        # TODO add trace to response instead of execution_info
+
+        return devnet_tx.get_trace(), {
             "overall_fee": tx_fee,
             "unit": "wei",
             "gas_price": gas_price,
@@ -451,3 +470,7 @@ class StarknetWrapper:
     def set_gas_price(self, gas_price: int):
         """Sets gas price to `gas_price`."""
         self.block_info_generator.set_gas_price(gas_price)
+
+    async def get_nonce(self, contract_address: int):
+        """Returns nonce of contract with `contract_address`"""
+        return await self.get_state().state.get_nonce_at(contract_address)

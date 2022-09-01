@@ -18,7 +18,10 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     L2ToL1Message,
 )
 from starkware.starknet.business_logic.transaction.objects import InternalTransaction
-from starkware.starknet.testing.starknet import StarknetCallInfo
+from starkware.starknet.testing.starknet import (
+    TransactionExecutionInfo,
+    StarknetCallInfo,
+)
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from services.everest.business_logic.transaction_execution_objects import (
     TransactionFailureReason,
@@ -34,7 +37,7 @@ class DevnetTransaction:
         self,
         internal_tx: InternalTransaction,
         status: TransactionStatus,
-        execution_info: StarknetCallInfo,
+        execution_info: TransactionExecutionInfo,
         transaction_hash: int = None,
     ):
         self.block = None
@@ -58,11 +61,10 @@ class DevnetTransaction:
 
     def __get_events(self) -> List[Event]:
         """Returns the events"""
-        # TODO
-        # if isinstance(self.execution_info, StarknetTransactionExecutionInfo):
-        #     return self.execution_info.raw_events
+        if isinstance(self.execution_info, StarknetCallInfo):
+            return self.execution_info.raw_events
 
-        return self.execution_info.raw_events
+        return self.execution_info.get_sorted_events()
 
     def __get_l2_to_l1_messages(self) -> List[L2ToL1Message]:
         """Returns the l2 to l1 messages"""
@@ -140,17 +142,19 @@ class DevnetTransaction:
 
     def get_trace(self) -> TransactionTrace:
         """Returns the transaction trace"""
-        call_info = self.execution_info.call_info
+        call_info = self.execution_info.call_info  # TODO delete
+
+        validate_invocation = FunctionInvocation.from_internal(
+            self.execution_info.validate_info
+        )
+
+        function_invocation = FunctionInvocation.from_internal(
+            self.execution_info.call_info
+        )
 
         return TransactionTrace(
-            validate_invocation=self.execution_info.validate_info,
-            function_invocation=(
-                call_info
-                if isinstance(call_info, FunctionInvocation)
-                else FunctionInvocation.from_internal(
-                    self.execution_info.call_info
-                )
-            ),
+            validate_invocation=validate_invocation,
+            function_invocation=function_invocation,
             fee_transfer_invocation=self.execution_info.fee_transfer_info,
             signature=self.get_signature(),
         )

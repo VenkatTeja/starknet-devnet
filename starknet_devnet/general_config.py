@@ -8,7 +8,7 @@ from starkware.starknet.definitions.general_config import (
     DEFAULT_GAS_PRICE,
     DEFAULT_MAX_STEPS,
     DEFAULT_SEQUENCER_ADDRESS,
-    DEFAULT_VALIDATE_MAX_STEPS
+    DEFAULT_VALIDATE_MAX_STEPS,
 )
 from starkware.starknet.definitions import constants
 
@@ -31,6 +31,6 @@ DEFAULT_GENERAL_CONFIG = build_general_config(
         },
         "tx_version": constants.TRANSACTION_VERSION,
         "tx_commitment_tree_height": constants.TRANSACTION_COMMITMENT_TREE_HEIGHT,
-        "validate_max_n_steps": DEFAULT_VALIDATE_MAX_STEPS
+        "validate_max_n_steps": DEFAULT_VALIDATE_MAX_STEPS,
     }
 )
