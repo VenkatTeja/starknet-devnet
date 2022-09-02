@@ -45,33 +45,9 @@ class ContractWrapper:
             contract_address=self.contract.contract_address,
             selector=entry_point_selector,
             calldata=calldata,
-            caller_address=caller_address
+            caller_address=caller_address,
         )
 
         result = list(map(hex, call_info.retdata))
 
         return result
-
-    async def invoke(
-        self,
-        entry_point_selector: int,
-        calldata: List[int],
-        signature: List[int],
-        caller_address: int,
-        max_fee: int,
-    ):
-        """
-        Invokes the function identified with `entry_point_selector`, potentially passing in `calldata` and `signature`.
-        """
-
-        execution_info = await self.contract.state.invoke_raw(
-            contract_address=self.contract.contract_address,
-            selector=entry_point_selector,
-            calldata=calldata,
-            caller_address=caller_address,
-            max_fee=max_fee,
-            signature=signature and cast_to_felts(values=signature),
-        )
-
-        result = list(map(hex, execution_info.call_info.retdata))
-        return result, execution_info

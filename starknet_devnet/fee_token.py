@@ -9,6 +9,7 @@ from starkware.starknet.testing.contract import StarknetContract
 from starkware.python.utils import to_bytes
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.starknet.testing.starknet import Starknet
+from starknet_devnet.sequencer_api_utils import InternalInvokeFunction
 
 from starknet_devnet.util import Uint256, str_to_felt
 
@@ -55,18 +56,32 @@ class FeeToken:
         # assert not fee_token_state.initialized
 
         # TODO check if already set
-        await starknet.state.state.set_contract_class(FeeToken.HASH_BYTES, contract_class)
-        await starknet.state.state.deploy_contract(FeeToken.ADDRESS, FeeToken.HASH_BYTES)
+        await starknet.state.state.set_contract_class(
+            FeeToken.HASH_BYTES, contract_class
+        )
+        await starknet.state.state.deploy_contract(
+            FeeToken.ADDRESS, FeeToken.HASH_BYTES
+        )
 
-        await starknet.state.state.set_storage_at(FeeToken.ADDRESS, get_selector_from_name("ERC20_name"), str_to_felt(FeeToken.NAME))
-        await starknet.state.state.set_storage_at(FeeToken.ADDRESS, get_selector_from_name("ERC20_symbol"), str_to_felt(FeeToken.SYMBOL))
-        await starknet.state.state.set_storage_at(FeeToken.ADDRESS, get_selector_from_name("ERC20_decimals"), 18)
+        await starknet.state.state.set_storage_at(
+            FeeToken.ADDRESS,
+            get_selector_from_name("ERC20_name"),
+            str_to_felt(FeeToken.NAME),
+        )
+        await starknet.state.state.set_storage_at(
+            FeeToken.ADDRESS,
+            get_selector_from_name("ERC20_symbol"),
+            str_to_felt(FeeToken.SYMBOL),
+        )
+        await starknet.state.state.set_storage_at(
+            FeeToken.ADDRESS, get_selector_from_name("ERC20_decimals"), 18
+        )
 
         self.contract = StarknetContract(
             state=starknet.state,
             abi=contract_class.abi,
             contract_address=FeeToken.ADDRESS,
-            deploy_call_info=None
+            deploy_call_info=None,
         )
 
         await self.starknet_wrapper.store_contract(
@@ -105,13 +120,16 @@ class FeeToken:
         amount_uint256 = Uint256.from_felt(amount)
 
         tx_hash = None
+        transaction = self.get_mint_transaction(to_address, amount_uint256)
+        starknet: Starknet = self.starknet_wrapper.starknet
         if lite:
-            await self.contract.mint(
-                to_address, (amount_uint256.low, amount_uint256.high)
-            ).invoke()
+            # TODO should invoke be used here?
+            internal_tx = InternalInvokeFunction.from_external(
+                transaction, starknet.state.general_config
+            )
+            await starknet.state.execute_tx(internal_tx)
         else:
-            transaction = self.get_mint_transaction(to_address, amount_uint256)
-            _, tx_hash_int, _ = await self.starknet_wrapper.invoke(transaction)
+            _, tx_hash_int = await self.starknet_wrapper.invoke(transaction)
             tx_hash = hex(tx_hash_int)
 
         return tx_hash

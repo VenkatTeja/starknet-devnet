@@ -130,24 +130,8 @@ class StarknetWrapper:
             general_config=state.general_config,
         )
 
-        if not self.config.lite_mode_block_hash:
-            # This is the most time-intensive part of the function.
-            # With only skipping it in lite-mode, we still get the time benefit.
-            # In regular mode it's needed for state update calculation and block state_root calculation.
-            updated_shared_state = (
-                await current_carried_state.shared_state.apply_state_updates(
-                    ffc=current_carried_state.ffc,
-                    previous_carried_state=previous_state,
-                    current_carried_state=current_carried_state,
-                )
-            )
-
-            state.state.shared_state = updated_shared_state
-            await self.__preserve_current_state(state.state)
-
-            return generate_state_update(previous_state, current_carried_state)
-
         return None
+        # return generate_state_update(previous_state, current_carried_state)
 
     async def store_contract(
         self,
@@ -216,7 +200,7 @@ class StarknetWrapper:
         transaction = DevnetTransaction(
             internal_tx=internal_declare,
             status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=DummyExecutionInfo(),
+            execution_info=DummyExecutionInfo(), # TODO use actual execution info
             transaction_hash=tx_hash,
         )
 
@@ -323,19 +307,7 @@ class StarknetWrapper:
         try:
             preserved_block_info = self.__update_block_number()
 
-            contract_wrapper = self.contracts.get_by_address(
-                invoke_transaction.contract_address
-            )
-
             execution_info = await state.execute_tx(invoke_transaction)
-            execution_info.call_info.
-            adapted_result, execution_info = await contract_wrapper.invoke(
-                entry_point_selector=invoke_transaction.entry_point_selector,
-                calldata=invoke_transaction.calldata,
-                signature=invoke_transaction.signature,
-                caller_address=invoke_transaction.account_contract_address,
-                max_fee=invoke_transaction.max_fee,
-            )
             status = TransactionStatus.ACCEPTED_ON_L2
             error_message = None
             state_update = await self.__update_state()
@@ -343,7 +315,6 @@ class StarknetWrapper:
             error_message = err.message
             status = TransactionStatus.REJECTED
             execution_info = DummyExecutionInfo()
-            adapted_result = []
             state_update = None
 
             # restore block info
@@ -363,7 +334,7 @@ class StarknetWrapper:
             execution_info.call_info.internal_calls, tx_hash
         )
 
-        return invoke_function.contract_address, tx_hash, {"result": adapted_result}
+        return invoke_function.contract_address, tx_hash
 
     async def call(self, transaction: CallFunction):
         """Perform call according to specifications in `transaction`."""
@@ -424,14 +395,6 @@ class StarknetWrapper:
     async def calculate_actual_fee(self, external_tx: InvokeFunction):
         """Calculates actual fee"""
         state = self.get_state()
-        print("DEBUG estimating fee, version =", external_tx.version)
-
-        # modify version
-        # external_tx_dumped = external_tx.dump()
-        # from starkware.starknet.definitions.constants import QUERY_VERSION_BASE
-        # print("DEBUG subtraction operands", external_tx_dumped["version"], QUERY_VERSION_BASE)
-        # external_tx_dumped["version"] = hex(int(external_tx_dumped["version"], 16) - QUERY_VERSION_BASE)
-        # external_tx = InvokeFunction.load(external_tx_dumped)
 
         internal_tx = InternalInvokeFunctionForSimulate.from_external(
             external_tx, state.general_config

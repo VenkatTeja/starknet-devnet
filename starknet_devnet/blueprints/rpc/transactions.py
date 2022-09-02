@@ -126,7 +126,7 @@ async def add_invoke_transaction(
         nonce=nonce
     )
 
-    _, transaction_hash, _ = await state.starknet_wrapper.invoke(
+    _, transaction_hash = await state.starknet_wrapper.invoke(
         invoke_function=invoke_function
     )
     return RpcInvokeTransactionResult(

@@ -1,8 +1,15 @@
 """
 Gateway routes
 """
+import json
+
 from flask import Blueprint, request, jsonify
 from starkware.starknet.definitions.transaction_type import TransactionType
+from starkware.starknet.services.api.gateway.transaction import (
+    Deploy,
+    Declare,
+    InvokeFunction,
+)
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.devnet_config import DumpOn
@@ -21,35 +28,32 @@ def is_alive():
 
 @gateway.route("/add_transaction", methods=["POST"])
 async def add_transaction():
-    """Endpoint for accepting DEPLOY and INVOKE_FUNCTION transactions."""
+    """Endpoint for accepting (state-changing) transactions."""
 
-    transaction = validate_transaction(request.data)
-    tx_type = transaction.tx_type
+    raw_transaction = json.loads(request.data)
+    tx_type = raw_transaction["type"]
 
     response_dict = {
         "code": StarkErrorCode.TRANSACTION_RECEIVED.name,
     }
 
-    if tx_type == TransactionType.DECLARE:
+    if tx_type == TransactionType.DECLARE.name:
         contract_class_hash, transaction_hash = await state.starknet_wrapper.declare(
-            transaction
+            validate_transaction(raw_transaction, Declare)
         )
         response_dict["class_hash"] = hex(contract_class_hash)
 
-    elif tx_type == TransactionType.DEPLOY:
+    elif tx_type == TransactionType.DEPLOY.name:
         contract_address, transaction_hash = await state.starknet_wrapper.deploy(
-            transaction
+            validate_transaction(raw_transaction, Deploy)
         )
         response_dict["address"] = fixed_length_hex(contract_address)
 
-    elif tx_type == TransactionType.INVOKE_FUNCTION:
-        (
-            contract_address,
-            transaction_hash,
-            result_dict,
-        ) = await state.starknet_wrapper.invoke(transaction)
+    elif tx_type == TransactionType.INVOKE_FUNCTION.name:
+        (contract_address, transaction_hash) = await state.starknet_wrapper.invoke(
+            validate_transaction(raw_transaction, InvokeFunction)
+        )
         response_dict["address"] = fixed_length_hex(contract_address)
-        response_dict.update(result_dict)
 
     else:
         raise StarknetDevnetException(
