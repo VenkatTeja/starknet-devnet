@@ -10,6 +10,8 @@ import requests
 
 import pytest
 
+from test.account import execute_single
+
 from .test_account import get_account_balance
 from .test_fee_token import mint
 from .util import (
@@ -21,7 +23,12 @@ from .util import (
     terminate_and_wait,
 )
 from .settings import APP_URL
-from .shared import CONTRACT_PATH, ABI_PATH
+from .shared import (
+    CONTRACT_PATH,
+    ABI_PATH,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
 
 DUMP_PATH = "dump.pkl"
 
@@ -217,7 +224,13 @@ def test_loading_via_cli():
     ACTIVE_DEVNET.start()
     contract_address = deploy_empty_contract()
 
-    invoke("increase_balance", ["10", "20"], contract_address, ABI_PATH)
+    execute_single(
+        contract_address,
+        "increase_balance",
+        ["10", "20"],
+        PREDEPLOYED_ACCOUNT_ADDRESS,
+        PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     balance_after_invoke = call("get_balance", contract_address, ABI_PATH)
     assert balance_after_invoke == "30"
 
@@ -233,7 +246,13 @@ def test_loading_via_cli():
     assert loaded_balance == balance_after_invoke
 
     # assure that new invokes can be made
-    invoke("increase_balance", ["15", "25"], contract_address, ABI_PATH)
+    invoke(
+        contract_address,
+        "increase_balance",
+        ["15", "25"],
+        PREDEPLOYED_ACCOUNT_ADDRESS,
+        PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     balance_after_invoke_on_loaded = call(
         "get_balance", contract_address, abi_path=ABI_PATH
     )

@@ -2,7 +2,14 @@
 Test block number
 """
 
-from .shared import ARTIFACTS_PATH, FAILING_CONTRACT_PATH, GENESIS_BLOCK_NUMBER
+from test.account import execute_single
+from .shared import (
+    ARTIFACTS_PATH,
+    FAILING_CONTRACT_PATH,
+    GENESIS_BLOCK_NUMBER,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
 from .util import declare, devnet_in_background, deploy, call, invoke
 
 BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.json"
@@ -22,11 +29,12 @@ def base_workflow():
     block_number_before = my_get_block_number(deploy_info["address"])
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
 
-    invoke(
+    execute_single(
+        address=deploy_info["address"],
         function="write_block_number",
         inputs=[],
-        address=deploy_info["address"],
-        abi_path=BLOCK_NUMBER_ABI_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
     written_block_number = call(
@@ -96,11 +104,12 @@ def test_block_number_not_incremented_if_invoke_fails():
     block_number_before = my_get_block_number(deploy_info["address"])
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
 
-    invoke(
+    execute_single(
         function="fail",
         inputs=[],
         address=deploy_info["address"],
-        abi_path=BLOCK_NUMBER_ABI_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
     block_number_after = my_get_block_number(deploy_info["address"])

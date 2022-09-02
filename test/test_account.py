@@ -6,7 +6,7 @@ from test.settings import APP_URL
 import requests
 import pytest
 
-from .shared import ABI_PATH, CONTRACT_PATH, EVENTS_CONTRACT_PATH
+from .shared import ABI_PATH, CONTRACT_PATH, EVENTS_CONTRACT_PATH, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY
 from .util import (
     assert_equal,
     assert_events,
@@ -44,10 +44,6 @@ ACCOUNTS_SEED_DEVNET_ARGS = [
     "--initial-balance",
     "1_000_000_000_000_000_000_000",
 ]
-PREDEPLOYED_ACCOUNT_ADDRESS = (
-    "0x347be35996a21f6bf0623e75dbce52baba918ad5ae8d83b6f416045ab22961a"
-)
-PREDEPLOYED_ACCOUNT_PRIVATE_KEY = 0xBDD640FB06671AD11C80317FA3B1799D
 
 
 def deploy_empty_contract():

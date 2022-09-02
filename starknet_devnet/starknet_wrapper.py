@@ -399,21 +399,17 @@ class StarknetWrapper:
         internal_tx = InternalInvokeFunctionForSimulate.from_external(
             external_tx, state.general_config
         )
-        print("DEBUG created from external")
 
         execution_info = await internal_tx.apply_state_updates(
             state.state._copy(), state.general_config
         )
-        print("DEBUG applied state updates on copy")
+        # TODO getting a gorilla with the banana?
         devnet_tx = DevnetTransaction(internal_tx, TransactionStatus.ACCEPTED_ON_L2, execution_info)
-        print("DEBUG generated DevnetTransaction")
 
         tx_fee = execution_info.actual_fee
 
         gas_price = state.state.block_info.gas_price
         gas_usage = tx_fee // gas_price if gas_price else 0
-
-        # TODO add trace to response instead of execution_info
 
         return devnet_tx.get_trace(), {
             "overall_fee": tx_fee,

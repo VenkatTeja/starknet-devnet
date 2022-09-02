@@ -4,7 +4,7 @@ Tests of contract class declaration and deploy syscall.
 
 import pytest
 
-from .account import execute
+from .account import execute, execute_single
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
@@ -28,7 +28,7 @@ from .util import (
 )
 
 
-def assert_deployed_through_syscall(tx_hash, initial_balance):
+def assert_deployed_through_syscall(tx_hash, initial_balance: str):
     """Asserts that a contract has been deployed using the deploy syscall"""
     assert_tx_status(tx_hash, "ACCEPTED_ON_L2")
 
@@ -83,13 +83,14 @@ def test_declare_and_deploy():
 
     # Deploy a contract of the declared class through the deployer
     initial_balance = "10"
-    invoke_tx_hash = invoke(
+    invoke_tx_hash = execute_single(
         function="deploy_contract",
         inputs=[initial_balance],
         address=deployer_address,
-        abi_path=DEPLOYER_ABI_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    assert_deployed_through_syscall(invoke_tx_hash, initial_balance)
+    assert_deployed_through_syscall(invoke_tx_hash, str(initial_balance))
 
     # Deploy a contract of the declared class through the deployer - using an account
     initial_balance_through_account = 15
